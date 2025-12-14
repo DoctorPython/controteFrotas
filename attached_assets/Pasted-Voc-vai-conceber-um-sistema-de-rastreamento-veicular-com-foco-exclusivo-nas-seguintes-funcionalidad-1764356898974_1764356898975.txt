@@ -1,0 +1,113 @@
+Você vai conceber um sistema de rastreamento veicular com foco exclusivo nas seguintes funcionalidades: Localização e Monitoramento em Tempo Real, Histórico de Trajetos e Rotas, Alertas Geográficos (Geofencing) e Monitoramento e Controle de Velocidade. Entregue especificações funcionais, fluxos de uso, telas principais e exemplos de mensagens/alertas. Evite qualquer requisito técnico (arquitetura, linguagens, servidores, APIs, hardware). Use linguagem voltada ao usuário final (gestores de frota e proprietários de veículo) e a um time de produto/UX.
+
+Visão geral do produto
+
+Objetivo: permitir que proprietários e gestores acompanhem veículos com precisão, revisem trajetos passados, recebam notificações por violação de perímetros definidos e controlem limites de velocidade para segurança e conformidade.
+
+Principais usuários: gestor de frota, motorista, proprietário individual.
+
+Funcionalidade — Localização e Monitoramento em Tempo Real
+
+Descrever a experiência do usuário ao abrir o painel/mapa: posição atual do veículo, ícone que indica direção, velocidade instantânea, status (parado, em movimento, ignição ligada/desligada).
+
+Mostrar controles: centralizar no veículo, seguir em tempo real (modo “seguir”), lista de veículos com mini-status.
+
+Indicadores visuais: traçado de percurso recente (últimos N minutos), precisão estimada exibida ao lado do marcador, e botão para solicitar atualização imediata de localização.
+
+Exemplos de mensagens UX: “Última atualização: 12s atrás”, “Sinal fraco — posição estimada”.
+
+Funcionalidade — Histórico de Trajetos e Rotas
+
+Descrever como acessar histórico: seleção de veículo + calendário (dia/hora).
+
+Exibir rota no mapa com pontos marcados para partidas, paradas e eventos relevantes (ex.: parada > X minutos).
+
+Mostrar resumo do trajeto: distância total, tempo de deslocamento, tempo de parada, velocidade média, pontos de parada com endereço aproximado.
+
+Fornecer filtros e exportação: filtrar por intervalo de tempo e tipo de evento (paradas, excesso de velocidade, entrada/saída de geofence). Exemplos de linha do tempo textual para o gestor revisar rapidamente.
+
+Caso de uso: “Revisar rota de ontem entre 08:00–12:00 e identificar todas as paradas > 10 min”.
+
+Funcionalidade — Alertas Geográficos (Geofencing)
+
+Permitir criação de geofences (circulares e polígonos) com nome, descrição e horário de ativação.
+
+Regras de alerta: entrada, saída, permanência além de X minutos, violação fora de horário permitido.
+
+Definir destinatários e canais de alerta (ex.: notificação no app, SMS, e-mail — apenas descrever, sem requisitos técnicos).
+
+Exemplos de mensagens/alertas amigáveis: “Veículo XYZ saiu da área ‘Depósito Centro’ às 14:12”, “Veículo ABC permanece dentro da área restrita por 35 minutos”.
+
+Incluir lógica de false-positive: indicar no produto opção para configuração de tolerância (ex.: ignorar saídas/entradas que durarem < Y segundos).
+
+Funcionalidade — Monitoramento e Controle de Velocidade
+
+Permitir definição de limites de velocidade por veículo ou por zona (por exemplo: até 60 km/h em áreas urbanas).
+
+Alertas instantâneos para excesso de velocidade (incluindo velocidade registrada e limite); registro de eventos de excesso no histórico.
+
+Painel de conformidade: relatório de infrações por veículo, por motorista (se aplicável), com indicadores de tendência (aumentando/diminuindo).
+
+Comportamento UX em caso de velocidade excessiva: notificação imediata ao gestor, alerta no painel do motorista (se houver) com sugestão de ação (reduzir velocidade).
+
+Exemplo de regra de controle: “Notificar quando velocidade > limite por mais de 10 segundos”.
+
+Fluxos de usuário principais
+
+Fluxo A (Gestor acompanha em tempo real): abrir mapa → selecionar veículo → ativar modo seguir → receber alerta de excesso de velocidade → abrir histórico do dia → exportar trecho.
+
+Fluxo B (Criar geofence): acessar geofences → criar nova → nomear e desenhar área → definir regras (entrada/saída/horário) → salvar → testar com notificação simulada.
+
+Fluxo C (Análise pós-ocorrência): selecionar período → visualizar rota → marcar eventos de interesse (excesso de velocidade, paradas) → gerar resumo para relatório.
+
+Telas e componentes sugeridos (descrição funcional)
+
+Tela principal: mapa central, lista lateral de veículos com status, barra de busca, filtros rápidos (online/offline, excesso de velocidade).
+
+Tela de histórico: mapa com trilha, painel lateral com resumo e lista de eventos ordenada cronologicamente.
+
+Tela de geofences: lista e mapa de geofences, botão “Criar”, formulário de regras com campos claros.
+
+Tela de alertas: feed cruzado com filtros (tipo, veículo, lido/não lido), ações rápidas (marcar como lido, responder).
+
+Tela de relatórios de velocidade: gráfico de ocorrências por período (descrição funcional), tabela detalhada.
+
+Mensagens, notificações e prioridades
+
+Priorizar notificações críticas (ex.: veículo fora da rota em área sensível, excesso de velocidade extremo) com canal de alta prioridade.
+
+Exemplos textuais curtos e claros para push/alerta: “Alerta: excesso de velocidade — Veículo 12 — 102 km/h em zona 60 km/h”.
+
+Modelos de e-mail/resumo diário: “Resumo diário — total de X eventos de velocidade, Y entradas/saídas de geofence”.
+
+Regras de operação e aceitabilidade
+
+Definir expectativas de atualização (ex.: modo tempo real mostra a melhor informação disponível; histórico pode ser usado para auditoria de rotas).
+
+Indicar tratamento de inconsistências (ex.: marcar eventos com baixa confiabilidade de GPS e indicar no histórico).
+
+Critérios de sucesso (funcionais, não técnicos)
+
+Usuário consegue localizar qualquer veículo em menos de 3 cliques.
+
+Sistema mostra histórico completo de um turno de trabalho com métricas resumidas (distância, tempo, paradas).
+
+Gestor recebe e interpreta corretamente alertas de geofence e velocidade sem intervenção técnica.
+
+Relatórios de velocidade permitem identificar os 10 principais veículos com maior número de infrações no período selecionado.
+
+Exemplos de strings e textos para interface (UI copy)
+
+Botões: “Seguir veículo”, “Ver histórico”, “Criar geofence”, “Definir limite de velocidade”, “Exportar”.
+
+Alertas: “Entrada na área ‘Entrega A’ — 09:23”, “Velocidade acima do limite — 85 km/h (limite 60 km/h)”.
+
+Mensagens de estado: “Sinal fraco — última atualização há 2 min”, “Localização estimada”.
+
+Considerações de experiência
+
+Priorizar clareza nas telas: destaque para eventos recentes e percepções imediatas (velocidade atual e alertas ativos).
+
+Oferecer ferramentas de investigação rápida: pular para o primeiro evento de excesso de velocidade em um trajeto, zoom para cada parada.
+
+Incluir confirmações e undo para ações críticas (ex.: excluir geofence).
