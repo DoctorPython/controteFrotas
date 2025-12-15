@@ -4,11 +4,12 @@ import type {
   Geofence, InsertGeofence,
   Alert, InsertAlert,
   Trip, SpeedViolation, VehicleStats,
-  TrackingData
+  TrackingData,
+  User, InsertUser
 } from "@shared/schema";
 
 export interface IStorage {
-  getVehicles(): Promise<Vehicle[]>;
+  getVehicles(userId?: string): Promise<Vehicle[]>;
   getVehicle(id: string): Promise<Vehicle | undefined>;
   getVehicleByPlate(licensePlate: string): Promise<Vehicle | undefined>;
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
@@ -22,17 +23,29 @@ export interface IStorage {
   updateGeofence(id: string, updates: Partial<Geofence>): Promise<Geofence | undefined>;
   deleteGeofence(id: string): Promise<boolean>;
   
-  getAlerts(): Promise<Alert[]>;
+  getAlerts(userId?: string): Promise<Alert[]>;
   getAlert(id: string): Promise<Alert | undefined>;
   createAlert(alert: InsertAlert): Promise<Alert>;
   updateAlert(id: string, updates: Partial<Alert>): Promise<Alert | undefined>;
   markAllAlertsRead(): Promise<void>;
   clearReadAlerts(): Promise<void>;
   
-  getTrips(vehicleId: string, startDate: string, endDate: string): Promise<Trip[]>;
+  getTrips(vehicleId: string, startDate: string, endDate: string, userId?: string): Promise<Trip[]>;
   
-  getSpeedViolations(startDate: string, endDate: string): Promise<SpeedViolation[]>;
-  getSpeedStats(startDate: string, endDate: string): Promise<VehicleStats>;
+  getSpeedViolations(startDate: string, endDate: string, userId?: string): Promise<SpeedViolation[]>;
+  getSpeedStats(startDate: string, endDate: string, userId?: string): Promise<VehicleStats>;
+  
+  // Métodos de autenticação e usuários
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
+  // Métodos de relacionamento usuário-veículo
+  getUserVehicles(userId: string): Promise<Vehicle[]>;
+  createUserVehicle(userId: string, vehicleId: string): Promise<void>;
+  deleteUserVehicle(userId: string, vehicleId: string): Promise<void>;
+  getUserVehicleIds(userId: string): Promise<string[]>;
 }
 
 const sampleVehicles: Vehicle[] = [
@@ -499,7 +512,8 @@ export class MemStorage implements IStorage {
     }, 3000);
   }
 
-  async getVehicles(): Promise<Vehicle[]> {
+  async getVehicles(userId?: string): Promise<Vehicle[]> {
+    // Em memória, não há filtro por usuário - retorna todos
     return Array.from(this.vehicles.values());
   }
 
@@ -632,7 +646,8 @@ export class MemStorage implements IStorage {
     return this.geofences.delete(id);
   }
 
-  async getAlerts(): Promise<Alert[]> {
+  async getAlerts(userId?: string): Promise<Alert[]> {
+    // Em memória, não há filtro por usuário - retorna todos
     return Array.from(this.alerts.values())
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
@@ -671,16 +686,51 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getTrips(vehicleId: string, startDate: string, endDate: string): Promise<Trip[]> {
+  async getTrips(vehicleId: string, startDate: string, endDate: string, userId?: string): Promise<Trip[]> {
     return [generateSampleTrip(vehicleId, startDate, endDate)];
   }
 
-  async getSpeedViolations(startDate: string, endDate: string): Promise<SpeedViolation[]> {
+  async getSpeedViolations(startDate: string, endDate: string, userId?: string): Promise<SpeedViolation[]> {
     return generateSpeedViolations(startDate, endDate);
   }
 
-  async getSpeedStats(startDate: string, endDate: string): Promise<VehicleStats> {
+  async getSpeedStats(startDate: string, endDate: string, userId?: string): Promise<VehicleStats> {
     return generateSpeedStats(startDate, endDate);
+  }
+
+  // Métodos de autenticação e usuários (stubs para memória)
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    throw new Error("Criação de usuário não suportada em memória");
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async getUserVehicles(userId: string): Promise<Vehicle[]> {
+    // Em memória, retorna todos os veículos
+    return Array.from(this.vehicles.values());
+  }
+
+  async createUserVehicle(userId: string, vehicleId: string): Promise<void> {
+    // Stub - não implementado em memória
+  }
+
+  async deleteUserVehicle(userId: string, vehicleId: string): Promise<void> {
+    // Stub - não implementado em memória
+  }
+
+  async getUserVehicleIds(userId: string): Promise<string[]> {
+    // Em memória, retorna todos os IDs
+    return Array.from(this.vehicles.keys());
   }
 }
 

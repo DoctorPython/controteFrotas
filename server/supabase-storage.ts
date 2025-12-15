@@ -1,12 +1,13 @@
 import { randomUUID } from "crypto";
-import { supabase } from "./supabase";
+import { supabase, supabaseAdmin } from "./supabase";
 import type { IStorage } from "./storage";
 import type {
   Vehicle, InsertVehicle,
   Geofence, InsertGeofence,
   Alert, InsertAlert,
   Trip, SpeedViolation, VehicleStats,
-  TrackingData
+  TrackingData,
+  User, InsertUser
 } from "@shared/schema";
 
 type VehicleUpdateCallback = (vehicles: Vehicle[]) => void;
@@ -157,10 +158,19 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ===== VEHICLES =====
-  async getVehicles(): Promise<Vehicle[]> {
-    const { data, error } = await supabase
-      .from("vehicles")
-      .select("*");
+  async getVehicles(userId?: string): Promise<Vehicle[]> {
+    let query = supabase.from("vehicles").select("*");
+    
+    // Se userId fornecido, filtrar apenas veículos do usuário
+    if (userId) {
+      const vehicleIds = await this.getUserVehicleIds(userId);
+      if (vehicleIds.length === 0) {
+        return []; // Usuário não tem veículos associados
+      }
+      query = query.in("id", vehicleIds);
+    }
+    
+    const { data, error } = await query;
     
     if (error) throw error;
     return (data || []).map(this.mapVehicleFromDb);
@@ -372,11 +382,19 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ===== ALERTS =====
-  async getAlerts(): Promise<Alert[]> {
-    const { data, error } = await supabase
-      .from("alerts")
-      .select("*")
-      .order("timestamp", { ascending: false });
+  async getAlerts(userId?: string): Promise<Alert[]> {
+    let query = supabase.from("alerts").select("*").order("timestamp", { ascending: false });
+    
+    // Se userId fornecido, filtrar apenas alertas dos veículos do usuário
+    if (userId) {
+      const vehicleIds = await this.getUserVehicleIds(userId);
+      if (vehicleIds.length === 0) {
+        return []; // Usuário não tem veículos associados
+      }
+      query = query.in("vehicle_id", vehicleIds);
+    }
+    
+    const { data, error } = await query;
     
     if (error) throw error;
     return (data || []).map(this.mapAlertFromDb);
@@ -446,17 +464,81 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ===== TRIPS (gerados dinamicamente) =====
-  async getTrips(vehicleId: string, startDate: string, endDate: string): Promise<Trip[]> {
+  async getTrips(vehicleId: string, startDate: string, endDate: string, userId?: string): Promise<Trip[]> {
+    // Se userId fornecido, verificar se o veículo pertence ao usuário
+    if (userId) {
+      const vehicleIds = await this.getUserVehicleIds(userId);
+      if (!vehicleIds.includes(vehicleId)) {
+        return []; // Veículo não pertence ao usuário
+      }
+    }
     // Gera viagem simulada (mesmo comportamento do MemStorage)
     return [this.generateSampleTrip(vehicleId, startDate, endDate)];
   }
 
-  async getSpeedViolations(startDate: string, endDate: string): Promise<SpeedViolation[]> {
-    return this.generateSpeedViolations(startDate, endDate);
+  async getSpeedViolations(startDate: string, endDate: string, userId?: string): Promise<SpeedViolation[]> {
+    const violations = await this.generateSpeedViolations(startDate, endDate);
+    
+    // Se userId fornecido, filtrar apenas violações dos veículos do usuário
+    if (userId) {
+      const vehicleIds = await this.getUserVehicleIds(userId);
+      return violations.filter(v => vehicleIds.includes(v.vehicleId));
+    }
+    
+    return violations;
   }
 
-  async getSpeedStats(startDate: string, endDate: string): Promise<VehicleStats> {
-    return this.generateSpeedStats(startDate, endDate);
+  async getSpeedStats(startDate: string, endDate: string, userId?: string): Promise<VehicleStats> {
+    const violations = await this.getSpeedViolations(startDate, endDate, userId);
+    
+    const byVehicle = new Map<string, { count: number; totalExcess: number; lastViolation: string; name: string }>();
+    
+    violations.forEach(v => {
+      const existing = byVehicle.get(v.vehicleId);
+      if (existing) {
+        existing.count++;
+        existing.totalExcess += v.excessSpeed;
+        if (new Date(v.timestamp) > new Date(existing.lastViolation)) {
+          existing.lastViolation = v.timestamp;
+        }
+      } else {
+        byVehicle.set(v.vehicleId, {
+          count: 1,
+          totalExcess: v.excessSpeed,
+          lastViolation: v.timestamp,
+          name: v.vehicleName,
+        });
+      }
+    });
+    
+    const byDay = new Map<string, number>();
+    violations.forEach(v => {
+      const day = v.timestamp.split("T")[0];
+      byDay.set(day, (byDay.get(day) || 0) + 1);
+    });
+    
+    const topViolators = Array.from(byVehicle.entries())
+      .map(([vehicleId, data]) => ({
+        vehicleId,
+        vehicleName: data.name,
+        totalViolations: data.count,
+        averageExcessSpeed: data.totalExcess / data.count,
+        lastViolation: data.lastViolation,
+      }))
+      .sort((a, b) => b.totalViolations - a.totalViolations)
+      .slice(0, 10);
+    
+    return {
+      totalViolations: violations.length,
+      vehiclesWithViolations: byVehicle.size,
+      averageExcessSpeed: violations.length > 0 
+        ? violations.reduce((sum, v) => sum + v.excessSpeed, 0) / violations.length 
+        : 0,
+      violationsByDay: Array.from(byDay.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      topViolators,
+    };
   }
 
   // ===== MAPEAMENTO DB <-> APP =====
@@ -757,6 +839,146 @@ export class SupabaseStorage implements IStorage {
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => a.date.localeCompare(b.date)),
       topViolators,
+    };
+  }
+
+  // ===== AUTHENTICATION & USERS =====
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    // Usar cliente administrativo para garantir acesso mesmo com RLS
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+    
+    if (error || !data) return undefined;
+    return this.mapUserFromDb(data);
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    // #region agent log
+    console.log("[DEBUG] getUserById chamado", { userId: id, timestamp: new Date().toISOString() });
+    // #endregion
+    // Usar cliente administrativo para garantir acesso mesmo com RLS
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("id", id)
+      .single();
+    // #region agent log
+    console.log("[DEBUG] Resultado query getUserById", { 
+      hasData: !!data, 
+      hasError: !!error, 
+      errorCode: error?.code, 
+      errorMessage: error?.message, 
+      dataEmail: data?.email,
+      timestamp: new Date().toISOString()
+    });
+    // #endregion
+    
+    if (error) {
+      console.error("Erro ao buscar usuário por ID:", error);
+      return undefined;
+    }
+    
+    if (!data) return undefined;
+    return this.mapUserFromDb(data);
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const dbUser = {
+      id,
+      email: user.email,
+      username: user.username,
+      role: user.role || "user",
+      created_at: new Date().toISOString(),
+    };
+    
+    // Usar cliente administrativo para garantir acesso mesmo com RLS
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .insert(dbUser)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapUserFromDb(data);
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const dbUpdates: any = {};
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
+    if (updates.username !== undefined) dbUpdates.username = updates.username;
+    if (updates.role !== undefined) dbUpdates.role = updates.role;
+    
+    // Usar cliente administrativo para garantir acesso mesmo com RLS
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .update(dbUpdates)
+      .eq("id", id)
+      .select()
+      .single();
+    
+    if (error || !data) return undefined;
+    return this.mapUserFromDb(data);
+  }
+
+  // ===== USER-VEHICLE RELATIONSHIPS =====
+  async getUserVehicles(userId: string): Promise<Vehicle[]> {
+    const vehicleIds = await this.getUserVehicleIds(userId);
+    if (vehicleIds.length === 0) {
+      return [];
+    }
+    
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select("*")
+      .in("id", vehicleIds);
+    
+    if (error) throw error;
+    return (data || []).map(this.mapVehicleFromDb);
+  }
+
+  async getUserVehicleIds(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("user_vehicles")
+      .select("vehicle_id")
+      .eq("user_id", userId);
+    
+    if (error) throw error;
+    return (data || []).map(row => row.vehicle_id);
+  }
+
+  async createUserVehicle(userId: string, vehicleId: string): Promise<void> {
+    const { error } = await supabase
+      .from("user_vehicles")
+      .insert({
+        user_id: userId,
+        vehicle_id: vehicleId,
+      });
+    
+    if (error) throw error;
+  }
+
+  async deleteUserVehicle(userId: string, vehicleId: string): Promise<void> {
+    const { error } = await supabase
+      .from("user_vehicles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("vehicle_id", vehicleId);
+    
+    if (error) throw error;
+  }
+
+  // ===== MAPEAMENTO USER DB <-> APP =====
+  private mapUserFromDb(row: any): User {
+    return {
+      id: row.id,
+      email: row.email,
+      username: row.username,
+      role: row.role,
+      createdAt: row.created_at,
     };
   }
 }

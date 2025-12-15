@@ -38,12 +38,36 @@ http://SEU-IP:5000/api
 
 ### Autenticação
 
-**Status atual:** A API não requer autenticação.
+**Status atual:** ✅ **A API requer autenticação via JWT Bearer Token.**
 
-**⚠️ Recomendação para produção:**
-- Implementar autenticação via JWT ou API Key
-- Adicionar middleware de autenticação em todos os endpoints
-- Especialmente importante para `/api/tracking` (endpoint público)
+A maioria dos endpoints requer autenticação. O token deve ser enviado no header `Authorization`:
+
+```
+Authorization: Bearer <token>
+```
+
+**Endpoints públicos (sem autenticação):**
+- `POST /api/tracking` - Recebe dados de rastreamento (público para dispositivos GPS)
+- `GET /api/alerts/:id` - Busca alerta específico
+- `POST /api/alerts` - Cria alerta manualmente
+- `PATCH /api/alerts/:id` - Atualiza alerta
+- `POST /api/alerts/mark-all-read` - Marca todos como lidos
+- `DELETE /api/alerts/clear-read` - Remove alertas lidos
+
+**Endpoints que requerem autenticação:**
+- Todos os outros endpoints requerem token válido
+
+**Endpoints que requerem permissão de administrador:**
+- `POST /api/vehicles` - Criar veículo
+- `PATCH /api/vehicles/:id` - Atualizar veículo
+- `DELETE /api/vehicles/:id` - Deletar veículo
+- Todos os endpoints de `/api/geofences` - Gerenciar geofences
+- `GET /api/reports/violations` - Relatório de violações
+- `GET /api/reports/speed-stats` - Estatísticas de velocidade
+
+**Filtragem por usuário:**
+- Usuários comuns (`role: "user"`) veem apenas seus próprios veículos e alertas
+- Administradores (`role: "admin"`) veem todos os dados
 
 ### CORS
 
@@ -58,6 +82,8 @@ http://SEU-IP:5000/api
 | `201` | Created - Recurso criado com sucesso |
 | `204` | No Content - Sucesso sem conteúdo (DELETE) |
 | `400` | Bad Request - Dados inválidos ou malformados |
+| `401` | Unauthorized - Token inválido, expirado ou ausente |
+| `403` | Forbidden - Acesso negado (sem permissão suficiente) |
 | `404` | Not Found - Recurso não encontrado |
 | `500` | Internal Server Error - Erro no servidor |
 
@@ -191,11 +217,171 @@ ws.connect();
 
 ---
 
+## Autenticação
+
+### `POST /api/auth/login`
+
+Realiza login no sistema e retorna token de autenticação.
+
+**Body (JSON):**
+
+```json
+{
+  "email": "usuario@exemplo.com",
+  "password": "senha123"
+}
+```
+
+**Resposta (200 OK):**
+
+```json
+{
+  "user": {
+    "id": "uuid-do-usuario",
+    "email": "usuario@exemplo.com",
+    "username": "Nome do Usuário",
+    "role": "admin"
+  },
+  "token": "jwt-access-token",
+  "session": {
+    "access_token": "jwt-access-token",
+    "refresh_token": "refresh-token",
+    "expires_in": 3600
+  }
+}
+```
+
+**Resposta (401 Unauthorized):**
+
+```json
+{
+  "error": "Credenciais inválidas",
+  "message": "Email ou senha incorretos"
+}
+```
+
+**Resposta (400 Bad Request):**
+
+```json
+{
+  "error": "Dados inválidos",
+  "details": [
+    {
+      "path": ["email"],
+      "message": "Expected string, received undefined"
+    }
+  ]
+}
+```
+
+**Exemplo:**
+
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "usuario@exemplo.com",
+    "password": "senha123"
+  }'
+```
+
+```javascript
+const response = await fetch('http://localhost:5000/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'usuario@exemplo.com',
+    password: 'senha123'
+  })
+});
+
+const data = await response.json();
+// Armazenar token para uso em requisições subsequentes
+localStorage.setItem('auth_token', data.token);
+```
+
+---
+
+### `POST /api/auth/logout`
+
+Realiza logout do sistema.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Resposta (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Logout realizado com sucesso"
+}
+```
+
+**Exemplo:**
+
+```bash
+curl -X POST http://localhost:5000/api/auth/logout \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+### `GET /api/auth/me`
+
+Retorna informações do usuário autenticado.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Resposta (200 OK):**
+
+```json
+{
+  "id": "uuid-do-usuario",
+  "email": "usuario@exemplo.com",
+  "username": "Nome do Usuário",
+  "role": "admin"
+}
+```
+
+**Resposta (401 Unauthorized):**
+
+```json
+{
+  "error": "Usuário não autenticado"
+}
+```
+
+**Exemplo:**
+
+```bash
+curl http://localhost:5000/api/auth/me \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
 ## Veículos
 
 ### `GET /api/vehicles`
 
 Lista todos os veículos cadastrados no sistema.
+
+**Autenticação:** ✅ Requerida
+
+**Permissões:**
+- **Usuários comuns (`role: "user"`)**: Veem apenas seus próprios veículos (associados na tabela `user_vehicles`)
+- **Administradores (`role: "admin"`)**: Veem todos os veículos
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Resposta (200 OK):**
 ```json
@@ -221,13 +407,26 @@ Lista todos os veículos cadastrados no sistema.
 
 **Exemplo:**
 ```bash
-curl http://localhost:5000/api/vehicles
+curl http://localhost:5000/api/vehicles \
+  -H "Authorization: Bearer <token>"
 ```
 
 ```javascript
-const vehicles = await fetch('http://localhost:5000/api/vehicles')
+const vehicles = await fetch('http://localhost:5000/api/vehicles', {
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+  }
+})
   .then(res => res.json());
 console.log(vehicles);
+```
+
+**Resposta (401 Unauthorized):**
+
+```json
+{
+  "error": "Token inválido ou expirado"
+}
 ```
 
 ---
@@ -235,6 +434,8 @@ console.log(vehicles);
 ### `GET /api/vehicles/:id`
 
 Busca um veículo específico pelo ID.
+
+**Autenticação:** ❌ Não requerida (público)
 
 **Parâmetros:**
 - `id` (path, obrigatório) - ID único do veículo
@@ -276,6 +477,14 @@ curl http://localhost:5000/api/vehicles/v1
 ### `POST /api/vehicles`
 
 Cria um novo veículo no sistema.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Body (JSON):**
 
@@ -343,10 +552,20 @@ Cria um novo veículo no sistema.
 }
 ```
 
+**Resposta (403 Forbidden):**
+
+```json
+{
+  "error": "Acesso negado",
+  "message": "Apenas administradores podem criar veículos"
+}
+```
+
 **Exemplo:**
 ```bash
 curl -X POST http://localhost:5000/api/vehicles \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "name": "Caminhão 01",
     "licensePlate": "ABC-1234",
@@ -365,7 +584,10 @@ curl -X POST http://localhost:5000/api/vehicles \
 ```javascript
 const vehicle = await fetch('http://localhost:5000/api/vehicles', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+  },
   body: JSON.stringify({
     name: 'Caminhão 01',
     licensePlate: 'ABC-1234',
@@ -387,6 +609,14 @@ const vehicle = await fetch('http://localhost:5000/api/vehicles', {
 ### `PATCH /api/vehicles/:id`
 
 Atualiza um veículo existente. Permite atualização parcial (apenas campos informados).
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Parâmetros:**
 - `id` (path, obrigatório) - ID do veículo
@@ -428,10 +658,20 @@ Atualiza um veículo existente. Permite atualização parcial (apenas campos inf
 }
 ```
 
+**Resposta (403 Forbidden):**
+
+```json
+{
+  "error": "Acesso negado",
+  "message": "Apenas administradores podem atualizar veículos"
+}
+```
+
 **Exemplo:**
 ```bash
 curl -X PATCH http://localhost:5000/api/vehicles/v1 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"speedLimit": 80}'
 ```
 
@@ -440,6 +680,14 @@ curl -X PATCH http://localhost:5000/api/vehicles/v1 \
 ### `DELETE /api/vehicles/:id`
 
 Remove um veículo do sistema.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Parâmetros:**
 - `id` (path, obrigatório) - ID do veículo
@@ -453,9 +701,19 @@ Remove um veículo do sistema.
 }
 ```
 
+**Resposta (403 Forbidden):**
+
+```json
+{
+  "error": "Acesso negado",
+  "message": "Apenas administradores podem deletar veículos"
+}
+```
+
 **Exemplo:**
 ```bash
-curl -X DELETE http://localhost:5000/api/vehicles/v1
+curl -X DELETE http://localhost:5000/api/vehicles/v1 \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -625,6 +883,14 @@ print(response.json())
 
 Lista todas as geofences cadastradas.
 
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
 **Resposta (200 OK):**
 ```json
 [
@@ -666,7 +932,8 @@ Lista todas as geofences cadastradas.
 
 **Exemplo:**
 ```bash
-curl http://localhost:5000/api/geofences
+curl http://localhost:5000/api/geofences \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -674,6 +941,14 @@ curl http://localhost:5000/api/geofences
 ### `GET /api/geofences/:id`
 
 Busca uma geofence específica pelo ID.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Parâmetros:**
 - `id` (path, obrigatório) - ID da geofence
@@ -699,6 +974,14 @@ Busca uma geofence específica pelo ID.
 ### `POST /api/geofences`
 
 Cria uma nova geofence.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Body (JSON):**
 
@@ -761,6 +1044,7 @@ Cria uma nova geofence.
 ```bash
 curl -X POST http://localhost:5000/api/geofences \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "name": "Depósito Central",
     "type": "circle",
@@ -777,6 +1061,14 @@ curl -X POST http://localhost:5000/api/geofences \
 ### `PATCH /api/geofences/:id`
 
 Atualiza uma geofence existente.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Parâmetros:**
 - `id` (path, obrigatório) - ID da geofence
@@ -813,6 +1105,14 @@ Atualiza uma geofence existente.
 
 Remove uma geofence do sistema.
 
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
 **Parâmetros:**
 - `id` (path, obrigatório) - ID da geofence
 
@@ -832,6 +1132,17 @@ Remove uma geofence do sistema.
 ### `GET /api/alerts`
 
 Lista todos os alertas do sistema.
+
+**Autenticação:** ✅ Requerida
+
+**Permissões:**
+- **Usuários comuns (`role: "user"`)**: Veem apenas alertas de seus próprios veículos
+- **Administradores (`role: "admin"`)**: Veem todos os alertas
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Resposta (200 OK):**
 ```json
@@ -887,7 +1198,8 @@ Lista todos os alertas do sistema.
 
 **Exemplo:**
 ```bash
-curl http://localhost:5000/api/alerts
+curl http://localhost:5000/api/alerts \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -1037,6 +1349,17 @@ curl -X DELETE http://localhost:5000/api/alerts/clear-read
 
 Busca viagens/trajetos de um veículo em um período.
 
+**Autenticação:** ✅ Requerida
+
+**Permissões:**
+- **Usuários comuns (`role: "user"`)**: Podem buscar apenas viagens de seus próprios veículos
+- **Administradores (`role: "admin"`)**: Podem buscar viagens de qualquer veículo
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
 **Query Parameters:**
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
@@ -1103,7 +1426,8 @@ Busca viagens/trajetos de um veículo em um período.
 
 **Exemplo:**
 ```bash
-curl "http://localhost:5000/api/trips?vehicleId=v1&startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z"
+curl "http://localhost:5000/api/trips?vehicleId=v1&startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -1111,6 +1435,14 @@ curl "http://localhost:5000/api/trips?vehicleId=v1&startDate=2024-12-01T00:00:00
 ### `GET /api/reports/violations`
 
 Lista todas as violações de velocidade em um período.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Query Parameters:**
 
@@ -1139,7 +1471,8 @@ Lista todas as violações de velocidade em um período.
 
 **Exemplo:**
 ```bash
-curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z"
+curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -1147,6 +1480,14 @@ curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00
 ### `GET /api/reports/speed-stats`
 
 Retorna estatísticas agregadas de violações de velocidade.
+
+**Autenticação:** ✅ Requerida  
+**Permissões:** ✅ Requer permissão de administrador (`role: "admin"`)
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
 **Query Parameters:**
 
@@ -1185,7 +1526,8 @@ Retorna estatísticas agregadas de violações de velocidade.
 
 **Exemplo:**
 ```bash
-curl "http://localhost:5000/api/reports/speed-stats?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z"
+curl "http://localhost:5000/api/reports/speed-stats?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -1397,6 +1739,36 @@ Quando os dados enviados são inválidos:
 }
 ```
 
+### Erro de Autenticação (401 Unauthorized)
+
+Quando o token está ausente, inválido ou expirado:
+
+```json
+{
+  "error": "Token inválido ou expirado"
+}
+```
+
+Para login com credenciais inválidas:
+
+```json
+{
+  "error": "Credenciais inválidas",
+  "message": "Email ou senha incorretos"
+}
+```
+
+### Erro de Autorização (403 Forbidden)
+
+Quando o usuário não tem permissão suficiente:
+
+```json
+{
+  "error": "Acesso negado",
+  "message": "Apenas administradores podem criar veículos"
+}
+```
+
 ### Erro de Não Encontrado (404 Not Found)
 
 Quando o recurso solicitado não existe:
@@ -1430,12 +1802,21 @@ Quando ocorre um erro interno:
 
 ## Exemplos Práticos
 
-### Fluxo Completo: Criar Veículo e Rastrear
+### Fluxo Completo: Login, Criar Veículo e Rastrear
 
 ```bash
-# 1. Criar um veículo
+# 1. Fazer login e obter token
+TOKEN=$(curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@fleetrack.com",
+    "password": "senha123"
+  }' | jq -r '.token')
+
+# 2. Criar um veículo (requer permissão de admin)
 curl -X POST http://localhost:5000/api/vehicles \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
     "name": "Meu Veículo",
     "licensePlate": "TEST-0001",
@@ -1565,9 +1946,18 @@ function updateVehicleMarker(vehicle) {
 ### Criar Geofence e Monitorar Entrada/Saída
 
 ```bash
-# 1. Criar geofence circular
+# 1. Fazer login e obter token (requer permissão de admin)
+TOKEN=$(curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@fleetrack.com",
+    "password": "senha123"
+  }' | jq -r '.token')
+
+# 2. Criar geofence circular
 curl -X POST http://localhost:5000/api/geofences \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
     "name": "Depósito Central",
     "description": "Área principal",
@@ -1593,18 +1983,29 @@ curl -X POST http://localhost:5000/api/geofences \
     "vehicleIds": ["v1"]
   }'
 
-# 2. Verificar alertas gerados quando veículo entra/sai
-curl http://localhost:5000/api/alerts
+# 3. Verificar alertas gerados quando veículo entra/sai
+curl http://localhost:5000/api/alerts \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Gerar Relatório de Violações
 
 ```bash
-# Obter estatísticas dos últimos 7 dias
-curl "http://localhost:5000/api/reports/speed-stats?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z"
+# 1. Fazer login e obter token (requer permissão de admin)
+TOKEN=$(curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@fleetrack.com",
+    "password": "senha123"
+  }' | jq -r '.token')
 
-# Listar todas as violações detalhadas
-curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z"
+# 2. Obter estatísticas dos últimos 7 dias
+curl "http://localhost:5000/api/reports/speed-stats?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Listar todas as violações detalhadas
+curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00Z&endDate=2024-12-08T23:59:59Z" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -1625,15 +2026,17 @@ curl "http://localhost:5000/api/reports/violations?startDate=2024-12-01T00:00:00
 
 ### Segurança
 
-- ⚠️ **Nenhuma autenticação implementada** - adequado apenas para desenvolvimento
-- ⚠️ Endpoint `/api/tracking` é público - implementar autenticação em produção
-- ⚠️ CORS permite qualquer origem - restringir em produção
+- ✅ **Autenticação JWT implementada** - Todos os endpoints (exceto alguns públicos) requerem token válido
+- ✅ **Autorização baseada em roles** - Administradores têm acesso completo, usuários comuns têm acesso limitado
+- ✅ **Row Level Security (RLS)** - Usuários comuns veem apenas seus próprios dados
+- ⚠️ Endpoint `/api/tracking` é público - Mantido público para permitir envio de dados de dispositivos GPS sem autenticação
+- ⚠️ CORS permite qualquer origem - Restringir em produção para domínios específicos
 
 ### Limitações Conhecidas
 
 - Histórico de viagens é calculado em tempo real (não há cache)
 - Alertas são gerados automaticamente, mas não há sistema de notificações push
-- Não há suporte para múltiplos usuários/empresas
+- ✅ Suporte para múltiplos usuários implementado - Usuários comuns veem apenas seus próprios veículos e alertas
 
 ---
 
@@ -1648,6 +2051,15 @@ Para dúvidas ou problemas:
 
 ---
 
-**Última atualização:** Dezembro 2024  
-**Versão da API:** 1.0.0
+**Última atualização:** Janeiro 2025  
+**Versão da API:** 1.1.0
+
+**Mudanças na versão 1.1.0:**
+- ✅ Implementada autenticação JWT via Supabase Auth
+- ✅ Adicionados endpoints de autenticação (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`)
+- ✅ Implementada autorização baseada em roles (admin/user)
+- ✅ Filtragem de dados por usuário (usuários comuns veem apenas seus próprios veículos e alertas)
+- ✅ Endpoints de veículos, geofences e relatórios agora requerem autenticação e/ou permissão de administrador
+
+
 

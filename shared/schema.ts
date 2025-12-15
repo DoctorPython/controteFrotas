@@ -164,19 +164,55 @@ export const vehicleStatsSchema = z.object({
 
 export type VehicleStats = z.infer<typeof vehicleStatsSchema>;
 
-export const users = {
-  id: "",
-  username: "",
-  password: "",
-};
+// User Role Types
+export type UserRole = "admin" | "user";
+
+// User Schema
+export const userSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  username: z.string(),
+  role: z.enum(["admin", "user"]),
+  createdAt: z.string().optional(),
+});
+
+export type User = z.infer<typeof userSchema>;
 
 export const insertUserSchema = z.object({
+  email: z.string().email(),
   username: z.string(),
-  password: z.string(),
+  role: z.enum(["admin", "user"]).default("user"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = { id: string; username: string; password: string };
+
+// User-Vehicle Relationship Schema
+export const userVehicleSchema = z.object({
+  userId: z.string(),
+  vehicleId: z.string(),
+});
+
+export type UserVehicle = z.infer<typeof userVehicleSchema>;
+
+// Authentication Schemas
+export const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória"),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const authResponseSchema = z.object({
+  user: userSchema,
+  token: z.string(),
+  session: z.object({
+    access_token: z.string(),
+    refresh_token: z.string(),
+    expires_in: z.number(),
+  }).optional(),
+});
+
+export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 // Schema para dados de rastreamento em tempo real
 export const trackingDataSchema = z.object({
