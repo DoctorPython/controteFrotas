@@ -3,10 +3,8 @@ import { config } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
 
-// Garante carregamento do .env mesmo em execuções via tsx/ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-config({ path: path.resolve(__dirname, "..", ".env") });
+// Garante carregamento do .env
+config({ path: path.resolve(process.cwd(), ".env") });
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;

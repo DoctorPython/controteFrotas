@@ -116,205 +116,10 @@ export default function Dashboard() {
   };
   
   return (
-    <div className="h-full flex flex-col" data-testid="dashboard-page">
-      {/* Stats Cards */}
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-1" data-testid="text-page-title">Dashboard da Frota</h1>
-          <p className="text-muted-foreground">Monitoramento e rastreamento de veículos em tempo real</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Veículos</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-mono" data-testid="text-stat-total">{stats.total}</div>
-              <p className="text-xs text-muted-foreground mt-1">Ativos na frota</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Em Movimento</CardTitle>
-              <Activity className="h-4 w-4 text-status-online" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-mono text-status-online" data-testid="text-stat-moving">{stats.moving}</div>
-              <p className="text-xs text-muted-foreground mt-1">Atualmente em trânsito</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Parados</CardTitle>
-              <CircleStop className="h-4 w-4 text-status-away" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-mono text-status-away" data-testid="text-stat-stopped">{stats.stopped}</div>
-              <p className="text-xs text-muted-foreground mt-1">Estacionados ou ociosos</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Alertas Recentes</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-mono text-destructive" data-testid="text-stat-alerts">{stats.alerts}</div>
-              <p className="text-xs text-muted-foreground mt-1">Não lidos</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Map and Vehicle List */}
-      <div className="flex-1 flex min-h-0">
-        {/* Vehicle List Sidebar - 320px */}
-        <div className="w-[320px] flex-shrink-0 border-r border-border bg-sidebar flex flex-col">
-        <div className="p-4 border-b border-sidebar-border">
-          <h2 className="font-semibold text-lg mb-3">Frota</h2>
-          
-          {/* Quick Filters */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={activeFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("all")}
-              className="text-xs"
-            >
-              Todos
-            </Button>
-            <Button
-              variant={activeFilter === "moving" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("moving")}
-              className="text-xs"
-            >
-              Em Movimento
-            </Button>
-            <Button
-              variant={activeFilter === "stopped" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("stopped")}
-              className="text-xs"
-            >
-              Parados
-            </Button>
-            <Button
-              variant={activeFilter === "alerts" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("alerts")}
-              className="text-xs relative"
-            >
-              Alertas
-              {alerts.filter(a => !a.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                  {alerts.filter(a => !a.read).length}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant={activeFilter === "offline" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("offline")}
-              className="text-xs"
-            >
-              Offline
-            </Button>
-          </div>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-3">
-            {isLoadingVehicles ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-20" />
-              ))
-            ) : filteredVehicles.length === 0 ? (
-              <div className="text-center py-8">
-                <Truck className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {activeFilter === "all" 
-                    ? "Nenhum veículo cadastrado" 
-                    : "Nenhum veículo encontrado"}
-                </p>
-              </div>
-            ) : (
-              filteredVehicles.map(vehicle => {
-                const vehicleAlertCount = alerts.filter(a => a.vehicleId === vehicle.id && !a.read).length;
-                const isSelected = selectedVehicle?.id === vehicle.id;
-
-                return (
-                  <Card
-                    key={vehicle.id}
-                    className={cn(
-                      "cursor-pointer hover-elevate min-h-20",
-                      isSelected && "ring-2 ring-primary"
-                    )}
-                    onClick={() => handleSelectVehicle(vehicle)}
-                    data-testid={`vehicle-${vehicle.id}`}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className={cn("w-3 h-3 rounded-full flex-shrink-0", getStatusColor(vehicle.status))} />
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium block truncate">{vehicle.name}</span>
-                            <span className="text-xs text-muted-foreground">{vehicle.licensePlate}</span>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                          {getStatusLabel(vehicle.status)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                        <div className="flex items-center gap-1">
-                          <Gauge className="h-3 w-3" />
-                          <span className={cn(
-                            "font-mono font-medium",
-                            vehicle.currentSpeed > vehicle.speedLimit && "text-destructive"
-                          )}>
-                            {vehicle.currentSpeed} km/h
-                          </span>
-                          {vehicle.currentSpeed > vehicle.speedLimit && (
-                            <AlertTriangle className="h-3 w-3 text-destructive" />
-                          )}
-                        </div>
-                        {vehicle.batteryLevel !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <Battery className="h-3 w-3" />
-                            <span>{vehicle.batteryLevel}%</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatTime(vehicle.lastUpdate)}</span>
-                        </div>
-                        {vehicleAlertCount > 0 && (
-                          <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
-                            {vehicleAlertCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Map Area - flex-1 */}
-      <div className="flex-1 relative">
+    <div className="relative h-full w-full overflow-hidden bg-background/5" data-testid="dashboard-page">
+      
+      {/* Camada 0: Mapa em Tela Cheia */}
+      <div className="absolute inset-0 z-0">
         <FleetMap
           vehicles={vehicles}
           geofences={geofences}
@@ -324,27 +129,204 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Details Panel - 360px */}
-      {selectedVehicle ? (
-        <div className="w-[360px] flex-shrink-0 border-l border-border">
-          <VehicleDetailPanel
-            vehicle={selectedVehicle}
-            alerts={vehicleAlerts}
-            onClose={handleCloseDetail}
-            onFollowVehicle={handleFollowVehicle}
-            isFollowing={followVehicle?.id === selectedVehicle.id}
-          />
+      {/* Camada 1: Interface Flutuante (HUD) */}
+      <div className="absolute inset-0 z-10 pointer-events-none flex flex-col md:flex-row p-4 gap-4">
+        
+        {/* Painel Esquerdo: KPIs + Lista */}
+        <div className="w-full md:w-[380px] flex flex-col gap-4 pointer-events-auto h-full max-h-full">
+          
+          {/* KPIs Compactos */}
+          <Card className="bg-background/95 backdrop-blur shadow-lg border-border/50 shrink-0">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-muted/50">
+                  <span className="text-xs text-muted-foreground font-medium uppercase">Total</span>
+                  <span className="text-xl font-bold font-mono text-foreground">{stats.total}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-status-online/10">
+                  <span className="text-xs text-status-online font-medium uppercase">Movendo</span>
+                  <span className="text-xl font-bold font-mono text-status-online">{stats.moving}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-status-away/10">
+                  <span className="text-xs text-status-away font-medium uppercase">Parados</span>
+                  <span className="text-xl font-bold font-mono text-status-away">{stats.stopped}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-destructive/10">
+                  <span className="text-xs text-destructive font-medium uppercase">Alertas</span>
+                  <span className="text-xl font-bold font-mono text-destructive">{stats.alerts}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lista de Veículos */}
+          <Card className="flex-1 bg-background/95 backdrop-blur shadow-lg border-border/50 overflow-hidden flex flex-col min-h-0">
+            <div className="p-3 border-b border-border/50 bg-muted/20">
+              <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <Truck className="h-4 w-4" /> Frota
+              </h2>
+              
+              {/* Filtros Compactos */}
+              <ScrollArea className="w-full whitespace-nowrap pb-1">
+                <div className="flex gap-2">
+                  <Button
+                    variant={activeFilter === "all" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setActiveFilter("all")}
+                    className="h-7 text-xs px-3"
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    variant={activeFilter === "moving" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setActiveFilter("moving")}
+                    className="h-7 text-xs px-3"
+                  >
+                    Movendo
+                  </Button>
+                  <Button
+                    variant={activeFilter === "stopped" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setActiveFilter("stopped")}
+                    className="h-7 text-xs px-3"
+                  >
+                    Parados
+                  </Button>
+                  <Button
+                    variant={activeFilter === "alerts" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setActiveFilter("alerts")}
+                    className="h-7 text-xs px-3 relative"
+                  >
+                    Alertas
+                    {alerts.filter(a => !a.read).length > 0 && (
+                      <span className="ml-1.5 flex h-2 w-2 rounded-full bg-destructive" />
+                    )}
+                  </Button>
+                  <Button
+                    variant={activeFilter === "offline" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setActiveFilter("offline")}
+                    className="h-7 text-xs px-3"
+                  >
+                    Offline
+                  </Button>
+                </div>
+              </ScrollArea>
+            </div>
+
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-2">
+                {isLoadingVehicles ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))
+                ) : filteredVehicles.length === 0 ? (
+                  <div className="text-center py-12 flex flex-col items-center">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                      <Truck className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Nenhum veículo</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {activeFilter === "all" 
+                        ? "Sua frota está vazia" 
+                        : "Nenhum veículo com este filtro"}
+                    </p>
+                  </div>
+                ) : (
+                  filteredVehicles.map(vehicle => {
+                    const vehicleAlertCount = alerts.filter(a => a.vehicleId === vehicle.id && !a.read).length;
+                    const isSelected = selectedVehicle?.id === vehicle.id;
+
+                    return (
+                      <div
+                        key={vehicle.id}
+                        className={cn(
+                          "group relative flex flex-col gap-2 p-3 rounded-lg border transition-all cursor-pointer",
+                          isSelected 
+                            ? "bg-primary/5 border-primary shadow-sm" 
+                            : "bg-card border-border/50 hover:bg-accent/50 hover:border-accent"
+                        )}
+                        onClick={() => handleSelectVehicle(vehicle)}
+                      >
+                        {/* Linha Principal: Status + Nome + Placa */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={cn(
+                              "w-2.5 h-2.5 rounded-full shadow-sm ring-2 ring-background",
+                              getStatusColor(vehicle.status).replace("bg-", "bg-") // Assumindo que getStatusColor retorna bg-
+                            )} />
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-sm truncate leading-tight">
+                                {vehicle.name}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {vehicle.licensePlate}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {vehicleAlertCount > 0 && (
+                            <Badge variant="destructive" className="h-5 px-1.5 text-[10px] animate-pulse">
+                              {vehicleAlertCount}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Linha Secundária: Métricas */}
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 p-1 rounded">
+                            <Gauge className="h-3 w-3 opacity-70" />
+                            <span className={cn(
+                              "font-mono font-medium",
+                              vehicle.currentSpeed > 0 ? "text-foreground" : ""
+                            )}>
+                              {vehicle.currentSpeed} <span className="text-[10px]">km/h</span>
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 p-1 rounded">
+                            <Clock className="h-3 w-3 opacity-70" />
+                            <span className="truncate">
+                              {formatTime(vehicle.lastUpdate).replace("atrás", "")}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Botão de Ação Rápida (Hover) */}
+                        <div className={cn(
+                          "absolute right-2 top-2 opacity-0 transition-opacity",
+                          isSelected ? "opacity-100" : "group-hover:opacity-100"
+                        )}>
+                           <MapPin className="h-4 w-4 text-primary" />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
+          </Card>
         </div>
-      ) : (
-        <div className="w-[360px] flex-shrink-0 border-l border-border bg-sidebar flex items-center justify-center">
-          <div className="text-center p-6">
-            <MapPin className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Selecione um veículo para ver os detalhes
-            </p>
+
+        {/* Espaçador Central (para permitir ver o mapa) */}
+        <div className="flex-1 pointer-events-none" />
+
+        {/* Painel Direito: Detalhes do Veículo */}
+        {selectedVehicle && (
+          <div className="w-full md:w-[360px] pointer-events-auto h-full animate-in slide-in-from-right-10 fade-in duration-300">
+            <Card className="h-full bg-background/95 backdrop-blur shadow-xl border-border/50 overflow-hidden flex flex-col">
+              <VehicleDetailPanel
+                vehicle={selectedVehicle}
+                alerts={vehicleAlerts}
+                onClose={handleCloseDetail}
+                onFollowVehicle={handleFollowVehicle}
+                isFollowing={followVehicle?.id === selectedVehicle.id}
+              />
+            </Card>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
