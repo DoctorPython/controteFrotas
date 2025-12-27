@@ -318,8 +318,8 @@ export default function Dashboard() {
         <FleetMap
           vehicles={vehicles}
           geofences={geofences}
-          selectedVehicle={selectedVehicle}
-          followVehicle={followVehicle}
+          selectedVehicle={selectedVehicle ?? undefined}
+          followVehicle={followVehicle ?? undefined}
           onSelectVehicle={handleSelectVehicle}
         />
       </div>

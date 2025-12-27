@@ -226,3 +226,32 @@ export const trackingDataSchema = z.object({
 });
 
 export type TrackingData = z.infer<typeof trackingDataSchema>;
+
+// Owner Authentication Schemas
+export const ownerAuthSchema = z.object({
+  licensePlate: z.string().min(1, "Placa do veículo é obrigatória"),
+});
+
+export type OwnerAuthInput = z.infer<typeof ownerAuthSchema>;
+
+export const ownerAuthResponseSchema = z.object({
+  token: z.string(),
+  vehicle: z.object({
+    id: z.string(),
+    name: z.string(),
+    licensePlate: z.string(),
+    model: z.string().optional(),
+    status: z.string(),
+  }),
+  expiresIn: z.number(),
+});
+
+export type OwnerAuthResponse = z.infer<typeof ownerAuthResponseSchema>;
+
+// Owner Token Payload (for JWT)
+export interface OwnerTokenPayload {
+  vehicleId: string;
+  type: "owner";
+  iat: number;
+  exp: number;
+}

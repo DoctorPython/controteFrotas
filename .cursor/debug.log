@@ -939,3 +939,53 @@
 {"location":"client/src/contexts/auth-context.tsx:75","message":"Dados recebidos com sucesso","data":{"hasUser":true,"hasSession":true,"hasAccessToken":true},"timestamp":1765751563740,"sessionId":"debug-session","runId":"run1","hypothesisId":"H"}
 {"location":"client/src/contexts/auth-context.tsx:193","message":"Armazenando token após login bem-sucedido","data":{"tokenLength":737,"hasToken":true},"timestamp":1765751563744,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
 {"location":"client/src/contexts/auth-context.tsx:199","message":"Token armazenado no localStorage após login","data":{"storedToken":"eyJhbGciOiJIUzI1NiIs"},"timestamp":1765751563747,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765760775658,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765760775663,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765760775667,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765760775662,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:45","message":"Sem sessão - removendo token do localStorage","data":{"hasSessionError":false},"timestamp":1765760777174,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"client/src/contexts/auth-context.tsx:62","message":"Fazendo requisição fetch","data":{"url":"/api/auth/login"},"timestamp":1765760780853,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:70","message":"Resposta recebida","data":{"status":200,"statusText":"OK","ok":true},"timestamp":1765760781505,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:75","message":"Dados recebidos com sucesso","data":{"hasUser":true,"hasSession":true,"hasAccessToken":true},"timestamp":1765760781509,"sessionId":"debug-session","runId":"run1","hypothesisId":"H"}
+{"location":"client/src/contexts/auth-context.tsx:193","message":"Armazenando token após login bem-sucedido","data":{"tokenLength":737,"hasToken":true},"timestamp":1765760781511,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:199","message":"Token armazenado no localStorage após login","data":{"storedToken":"eyJhbGciOiJIUzI1NiIs"},"timestamp":1765760781512,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765761284219,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765761284219,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765761284220,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765761284223,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765761298737,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765761298738,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765761298740,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765761298738,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765761325558,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765761325560,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765761325564,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765761325560,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:45","message":"Sem sessão - removendo token do localStorage","data":{"hasSessionError":false},"timestamp":1765761326676,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"client/src/contexts/auth-context.tsx:62","message":"Fazendo requisição fetch","data":{"url":"/api/auth/login"},"timestamp":1765761330465,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:70","message":"Resposta recebida","data":{"status":200,"statusText":"OK","ok":true},"timestamp":1765761331167,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:75","message":"Dados recebidos com sucesso","data":{"hasUser":true,"hasSession":true,"hasAccessToken":true},"timestamp":1765761331173,"sessionId":"debug-session","runId":"run1","hypothesisId":"H"}
+{"location":"client/src/contexts/auth-context.tsx:193","message":"Armazenando token após login bem-sucedido","data":{"tokenLength":737,"hasToken":true},"timestamp":1765761331175,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:199","message":"Token armazenado no localStorage após login","data":{"storedToken":"eyJhbGciOiJIUzI1NiIs"},"timestamp":1765761331177,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765762227447,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765762227448,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765762227449,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765762227453,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765762274129,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765762274131,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765762274132,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765762274131,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:45","message":"Sem sessão - removendo token do localStorage","data":{"hasSessionError":false},"timestamp":1765762274262,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"client/src/contexts/auth-context.tsx:62","message":"Fazendo requisição fetch","data":{"url":"/api/auth/login"},"timestamp":1765762275936,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:70","message":"Resposta recebida","data":{"status":200,"statusText":"OK","ok":true},"timestamp":1765762276328,"sessionId":"debug-session","runId":"run1","hypothesisId":"G"}
+{"location":"client/src/contexts/auth-context.tsx:75","message":"Dados recebidos com sucesso","data":{"hasUser":true,"hasSession":true,"hasAccessToken":true},"timestamp":1765762276331,"sessionId":"debug-session","runId":"run1","hypothesisId":"H"}
+{"location":"client/src/contexts/auth-context.tsx:193","message":"Armazenando token após login bem-sucedido","data":{"tokenLength":737,"hasToken":true},"timestamp":1765762276333,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"client/src/contexts/auth-context.tsx:199","message":"Token armazenado no localStorage após login","data":{"storedToken":"eyJhbGciOiJIUzI1NiIs"},"timestamp":1765762276335,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765766617899,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765766617902,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765766617906,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765766617901,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:3","message":"CSS import statement","data":{"imported":true},"timestamp":1765766638480,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:5","message":"After CSS import","data":{"cssLoaded":true},"timestamp":1765766638481,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"main.tsx:9","message":"Before render","data":{"rootExists":true},"timestamp":1765766638482,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"main.tsx:11","message":"After render","data":{"rendered":true},"timestamp":1765766638484,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}

@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 import { supabase, supabaseAdmin } from "./supabase";
-import type { UserRole } from "@shared/schema";
+import type { UserRole, OwnerTokenPayload } from "@shared/schema";
+import { storage } from "./storage";
 
 // Estender o tipo Request para incluir informações do usuário
 declare module "express-serve-static-core" {
@@ -10,6 +12,9 @@ declare module "express-serve-static-core" {
       email: string;
       username: string;
       role: UserRole;
+    };
+    ownerVehicle?: {
+      id: string;
     };
   }
 }
@@ -108,6 +113,87 @@ export function getUserIdFromRequest(req: Request): string | undefined {
  */
 export function isAdmin(req: Request): boolean {
   return req.user?.role === "admin";
+}
+
+// ===== OWNER AUTHENTICATION (JWT) =====
+
+/**
+ * Gera um token JWT para autenticação de proprietário de veículo
+ */
+export function generateOwnerToken(vehicleId: string): string {
+  const secret = process.env.OWNER_JWT_SECRET || "owner-secret-key-change-in-production";
+  const expiresIn = process.env.OWNER_JWT_EXPIRES_IN || "7d"; // 7 dias padrão
+  
+  const payload = {
+    vehicleId,
+    type: "owner" as const,
+  };
+
+  return jwt.sign(payload, secret, { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] });
+}
+
+/**
+ * Valida e decodifica um token JWT de proprietário
+ */
+export function verifyOwnerToken(token: string): OwnerTokenPayload | null {
+  try {
+    const secret = process.env.OWNER_JWT_SECRET || "owner-secret-key-change-in-production";
+    const decoded = jwt.verify(token, secret) as OwnerTokenPayload;
+    
+    if (decoded.type !== "owner" || !decoded.vehicleId) {
+      return null;
+    }
+    
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Middleware para autenticar requisições de proprietários usando token JWT
+ */
+export async function authenticateOwner(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Token de autenticação não fornecido" });
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove "Bearer "
+    
+    // Validar token JWT
+    const payload = verifyOwnerToken(token);
+    
+    if (!payload) {
+      res.status(401).json({ error: "Token inválido ou expirado" });
+      return;
+    }
+
+    // Verificar se o veículo ainda existe no banco
+    const vehicle = await storage.getVehicle(payload.vehicleId);
+    
+    if (!vehicle) {
+      res.status(401).json({ error: "Veículo não encontrado" });
+      return;
+    }
+
+    // Adicionar dados do veículo à requisição
+    req.ownerVehicle = {
+      id: vehicle.id,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Erro na autenticação de proprietário:", error);
+    res.status(500).json({ error: "Erro interno na autenticação" });
+  }
 }
 
 

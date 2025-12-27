@@ -2,14 +2,15 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { authenticate, authorize, getUserIdFromRequest, isAdmin } from "./auth";
+import { authenticate, authorize, getUserIdFromRequest, isAdmin, authenticateOwner, generateOwnerToken } from "./auth";
 import { supabase } from "./supabase";
 import { 
   insertVehicleSchema, 
   insertGeofenceSchema, 
   insertAlertSchema, 
   trackingDataSchema,
-  loginSchema 
+  loginSchema,
+  ownerAuthSchema
 } from "@shared/schema";
 
 const clients = new Set<WebSocket>();
@@ -170,6 +171,52 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Erro ao buscar dados do usuário:", error);
       res.status(500).json({ error: "Erro ao buscar dados do usuário" });
+    }
+  });
+
+  // ===== OWNER AUTHENTICATION =====
+  app.post("/api/auth/owner", async (req, res) => {
+    try {
+      const parsed = ownerAuthSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: parsed.error.errors 
+        });
+      }
+
+      const { licensePlate } = parsed.data;
+
+      // Buscar veículo pela placa
+      const vehicle = await storage.getVehicleByPlate(licensePlate);
+      
+      if (!vehicle) {
+        return res.status(404).json({ 
+          error: "Veículo não encontrado",
+          message: `Nenhum veículo encontrado com a placa: ${licensePlate}`
+        });
+      }
+
+      // Gerar token JWT
+      const token = generateOwnerToken(vehicle.id);
+      
+      // Calcular expiração (7 dias em segundos)
+      const expiresIn = 7 * 24 * 60 * 60;
+
+      res.json({
+        token,
+        vehicle: {
+          id: vehicle.id,
+          name: vehicle.name,
+          licensePlate: vehicle.licensePlate,
+          model: vehicle.model,
+          status: vehicle.status,
+        },
+        expiresIn,
+      });
+    } catch (error) {
+      console.error("Erro na autenticação de proprietário:", error);
+      res.status(500).json({ error: "Erro interno ao autenticar proprietário" });
     }
   });
 
@@ -474,6 +521,121 @@ export async function registerRoutes(
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch speed stats" });
+    }
+  });
+
+  // ===== OWNER ENDPOINTS =====
+  // Endpoints específicos para proprietários autenticados por placa
+
+  app.get("/api/owner/vehicle", authenticateOwner, async (req, res) => {
+    try {
+      if (!req.ownerVehicle) {
+        return res.status(401).json({ error: "Veículo não autenticado" });
+      }
+
+      const vehicle = await storage.getVehicle(req.ownerVehicle.id);
+      if (!vehicle) {
+        return res.status(404).json({ error: "Veículo não encontrado" });
+      }
+
+      res.json(vehicle);
+    } catch (error) {
+      console.error("Erro ao buscar dados do veículo:", error);
+      res.status(500).json({ error: "Erro ao buscar dados do veículo" });
+    }
+  });
+
+  app.get("/api/owner/position", authenticateOwner, async (req, res) => {
+    try {
+      if (!req.ownerVehicle) {
+        return res.status(401).json({ error: "Veículo não autenticado" });
+      }
+
+      const vehicle = await storage.getVehicle(req.ownerVehicle.id);
+      if (!vehicle) {
+        return res.status(404).json({ error: "Veículo não encontrado" });
+      }
+
+      res.json({
+        vehicleId: vehicle.id,
+        licensePlate: vehicle.licensePlate,
+        position: {
+          latitude: vehicle.latitude,
+          longitude: vehicle.longitude,
+          heading: vehicle.heading,
+          accuracy: vehicle.accuracy,
+        },
+        status: {
+          currentSpeed: vehicle.currentSpeed,
+          speedLimit: vehicle.speedLimit,
+          status: vehicle.status,
+          ignition: vehicle.ignition,
+        },
+        lastUpdate: vehicle.lastUpdate,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar posição do veículo:", error);
+      res.status(500).json({ error: "Erro ao buscar posição do veículo" });
+    }
+  });
+
+  app.get("/api/owner/history", authenticateOwner, async (req, res) => {
+    try {
+      if (!req.ownerVehicle) {
+        return res.status(401).json({ error: "Veículo não autenticado" });
+      }
+
+      const { startDate, endDate } = req.query;
+      
+      const start = startDate ? String(startDate) : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // Últimas 24h padrão
+      const end = endDate ? String(endDate) : new Date().toISOString();
+
+      const trips = await storage.getTrips(req.ownerVehicle.id, start, end);
+      
+      // Formatar histórico de forma mais simples para proprietários
+      const history = trips.flatMap(trip => 
+        trip.points.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          speed: point.speed,
+          heading: point.heading,
+          timestamp: point.timestamp,
+          accuracy: point.accuracy,
+        }))
+      );
+
+      res.json({
+        vehicleId: req.ownerVehicle.id,
+        startDate: start,
+        endDate: end,
+        points: history,
+        totalPoints: history.length,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar histórico do veículo:", error);
+      res.status(500).json({ error: "Erro ao buscar histórico do veículo" });
+    }
+  });
+
+  app.get("/api/owner/alerts", authenticateOwner, async (req, res) => {
+    try {
+      if (!req.ownerVehicle) {
+        return res.status(401).json({ error: "Veículo não autenticado" });
+      }
+
+      // Buscar alertas do veículo específico
+      const allAlerts = await storage.getAlerts();
+      const vehicleAlerts = allAlerts.filter(alert => alert.vehicleId === req.ownerVehicle!.id);
+
+      res.json({
+        vehicleId: req.ownerVehicle.id,
+        alerts: vehicleAlerts,
+        total: vehicleAlerts.length,
+        unread: vehicleAlerts.filter(a => !a.read).length,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar alertas do veículo:", error);
+      res.status(500).json({ error: "Erro ao buscar alertas do veículo" });
     }
   });
 
