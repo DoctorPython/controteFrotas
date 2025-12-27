@@ -1,5 +1,10 @@
 // Vercel Serverless Function Entrypoint
-const app = require('../dist/index.cjs');
+// Importa o app Express compilado em CJS
+const appModule = require('../dist/index.cjs');
+const app = appModule.default || appModule;
 
-// Suporte tanto para export default quanto module.exports direto
-module.exports = app.default || app;
+// Exporta um handler no formato esperado pelo @vercel/node
+// Encaminha a requisição diretamente para o Express
+module.exports = (req, res) => {
+  return app(req, res);
+};
