@@ -87,3 +87,7 @@ Se preferir usar a interface web do Supabase:
 - Nunca compartilhe ou exponha esta chave
 - Mantenha o arquivo `.env` seguro e não o commite no Git
 
+
+
+
+

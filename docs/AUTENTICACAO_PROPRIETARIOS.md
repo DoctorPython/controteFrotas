@@ -604,3 +604,7 @@ Para dúvidas ou problemas, consulte:
 - [Documentação Completa da API](./API_COMPLETA.md)
 - [Guia de Configuração](./GUIA_CONFIGURACAO_AUTENTICACAO.md)
 
+
+
+
+

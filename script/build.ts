@@ -44,6 +44,10 @@ async function buildAll() {
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
   ];
+  
+  // No Vercel, precisamos incluir as dependências no bundle ou garantir que estejam instaladas
+  // Para simplificar, vamos permitir que o esbuild faça o bundle das dependências críticas se necessário
+  // Mas para Node.js, geralmente mantemos externals.
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
   await esbuild({
@@ -55,7 +59,7 @@ async function buildAll() {
     define: {
       "process.env.NODE_ENV": '"production"',
     },
-    minify: true,
+    minify: false, // Desabilitar minificação para facilitar debug se necessário
     external: externals,
     logLevel: "info",
   });

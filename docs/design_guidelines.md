@@ -273,3 +273,7 @@
 - Small rounded pill: px-2 py-1 text-xs font-medium rounded-full
 - States: Online, Offline, Moving, Stopped, Alert
 
+
+
+
+

@@ -23,3 +23,7 @@ WHERE email = 'admin@fleetrack.com';
 -- FROM auth.users
 -- WHERE email = 'admin@fleetrack.com';
 
+
+
+
+

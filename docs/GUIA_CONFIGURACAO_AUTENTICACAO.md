@@ -155,3 +155,7 @@ FROM vehicles;
 - Apenas administradores podem criar veículos
 - Verifique se o usuário tem `role = 'admin'` na tabela `users`
 
+
+
+
+

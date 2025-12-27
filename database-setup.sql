@@ -106,3 +106,7 @@ COMMENT ON TABLE user_vehicles IS 'Relacionamento many-to-many entre usuários e
 COMMENT ON COLUMN users.role IS 'Nível de permissão: admin (acesso total) ou user (acesso restrito)';
 
 
+
+
+
+
