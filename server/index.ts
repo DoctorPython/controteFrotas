@@ -86,7 +86,13 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app, port);
   }
 
-  httpServer.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
-  });
+  // No Vercel, exportamos a app para ser usada como serverless function
+  // Em outros ambientes (local ou VPS), iniciamos o servidor HTTP
+  if (!process.env.VERCEL) {
+    httpServer.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port}`);
+    });
+  }
 })();
+
+export default app;
