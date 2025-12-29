@@ -59,7 +59,10 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Promise que será resolvida quando o app estiver pronto
+let appReady: Promise<void>;
+
+async function initializeApp() {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -93,6 +96,12 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     });
   }
-})();
+}
+
+// Inicializa o app
+appReady = initializeApp();
+
+// Exporta a promise de inicialização para uso no Vercel
+export { appReady };
 
 export default app;
