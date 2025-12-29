@@ -3,8 +3,7 @@ import fs from "fs";
 import path from "path";
 
 export function serveStatic(app: Express) {
-  // Em CJS compilado, __dirname aponta para o diretório do arquivo dist/index.cjs
-  // Tentamos múltiplos caminhos para encontrar a pasta public
+  // Tenta múltiplos caminhos para encontrar a pasta public
   const possiblePaths = [
     path.resolve(process.cwd(), "dist", "public"),
     path.resolve(__dirname, "public"),
@@ -15,7 +14,7 @@ export function serveStatic(app: Express) {
   
   if (!distPath) {
     throw new Error(
-      `Could not find the build directory. Tried: ${possiblePaths.join(", ")}. Make sure to build the client first.`,
+      `Could not find the build directory. Tried: ${possiblePaths.join(", ")}`,
     );
   }
 
