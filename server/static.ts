@@ -1,26 +1,21 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 
 export function serveStatic(app: Express) {
-  // Suporte para ESM e CJS
-  const currentDir = typeof __dirname !== 'undefined' 
-    ? __dirname 
-    : path.dirname(fileURLToPath(import.meta.url));
+  // Em CJS compilado, __dirname aponta para o diretório do arquivo dist/index.cjs
+  // Tentamos múltiplos caminhos para encontrar a pasta public
+  const possiblePaths = [
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(__dirname, "public"),
+    path.resolve(__dirname, "..", "dist", "public"),
+  ];
   
-  // Em produção, os arquivos estão em dist/public
-  // O arquivo compilado (dist/index.cjs) está em dist/, então public está no mesmo nível
-  let distPath = path.resolve(currentDir, "public");
+  let distPath = possiblePaths.find(p => fs.existsSync(p));
   
-  // Fallback: se não encontrar, tenta o caminho absoluto do projeto
-  if (!fs.existsSync(distPath)) {
-    distPath = path.resolve(process.cwd(), "dist", "public");
-  }
-  
-  if (!fs.existsSync(distPath)) {
+  if (!distPath) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find the build directory. Tried: ${possiblePaths.join(", ")}. Make sure to build the client first.`,
     );
   }
 
